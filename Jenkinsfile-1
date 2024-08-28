@@ -2,11 +2,64 @@ pipeline {
   agent {
     docker { image 'node:16-alpine' }
   }
+  
+  environment {
+    DOCKER_IMAGE = 'vijayarajult2/node1:v1'  // Define your Docker image name
+  }
+
   stages {
     stage('Test') {
       steps {
         sh 'node --version'
       }
+    }
+
+    stage('Build Docker Image') {
+      steps {
+        script {
+          echo "Building Docker image from Dockerfile"
+          sh '''
+          # Install Docker CLI if it's not present
+          apk add --no-cache docker-cli
+
+          # Build Docker image
+          docker build -t ${DOCKER_IMAGE} .
+          '''
+        }
+      }
+    }
+    
+    stage('Push Docker Image') {
+      steps {
+        script {
+          echo "Pushing Docker image ${DOCKER_IMAGE} to Docker Hub"
+          sh '''
+          # Log in to Docker Hub (ensure credentials are set in Jenkins)
+          echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+
+          # Push Docker image
+          docker push ${DOCKER_IMAGE}
+          '''
+        }
+      }
+    }
+  }
+  
+  post {
+    always {
+      script {
+        echo "Cleaning up..."
+        sh '''
+        # Clean up Docker containers/images if needed
+        docker system prune -f
+        '''
+      }
+    }
+    success {
+      echo 'Pipeline completed successfully!'
+    }
+    failure {
+      echo 'Pipeline failed!'
     }
   }
 }
