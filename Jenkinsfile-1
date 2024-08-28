@@ -1,8 +1,8 @@
 pipeline {
   agent {
-    docker { image 'node:16-alpine' }
+    docker { image 'docker:20.10-dind' }
   }
-  
+
   environment {
     DOCKER_IMAGE = 'vijayarajult2/node1:v1'  // Define your Docker image name
   }
@@ -19,8 +19,11 @@ pipeline {
         script {
           echo "Building Docker image from Dockerfile"
           sh '''
-          # Install Docker CLI if it's not present
-          apk add --no-cache docker-cli
+          # Ensure Docker daemon is running
+          dockerd &
+
+          # Wait for Docker daemon to start
+          sleep 20
 
           # Build Docker image
           docker build -t ${DOCKER_IMAGE} .
@@ -28,7 +31,7 @@ pipeline {
         }
       }
     }
-    
+
     stage('Push Docker Image') {
       steps {
         script {
@@ -44,7 +47,7 @@ pipeline {
       }
     }
   }
-  
+
   post {
     always {
       script {
@@ -63,3 +66,4 @@ pipeline {
     }
   }
 }
+
